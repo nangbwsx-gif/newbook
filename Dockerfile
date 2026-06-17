@@ -14,6 +14,10 @@ RUN npm ci
 COPY . .
 
 RUN npx prisma generate
+
+# 构建时需要 JWT_SECRET（Next.js 会在 "Collecting page data" 阶段读取）
+ARG JWT_SECRET
+ENV JWT_SECRET=$JWT_SECRET
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
 
