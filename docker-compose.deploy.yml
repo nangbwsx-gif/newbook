@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: newbook
+      POSTGRES_PASSWORD: newbook_pass
+      POSTGRES_DB: newbook
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U newbook"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - newbook-net
+
+  app:
+    image: newbook-app:latest
+    restart: always
+    env_file: .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/public/uploads
+    ports:
+      - "3000:3000"
+    networks:
+      - newbook-net
+
+volumes:
+  postgres-data:
+  uploads:
+
+networks:
+  newbook-net:

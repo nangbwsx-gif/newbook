@@ -1,0 +1,61 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  // AI 额度：每个用户初始 1 元 = 1_000_000 micro-cents（avoid float drift）。
+  // 用 micro-cents 是为了能精确累加按 token 计的小数费用。
+  aiSpentMicroCents Int @default(0)
+
+  books      Book[]
+  categories Category[]
+}
+
+/// 用户的自定义分类。"未分类" 是 UI 层的伪分类（不会写进这个表），
+/// 系统兜底用：删除分类时该分类下的书会落回"未分类"。
+///
+/// 改完以后请记得跑：
+///   npm run db:push       # 把新表写进 SQLite
+///   npm run db:generate   # 刷新 @prisma/client 类型
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 同一个用户下分类名不能重复
+  @@unique([userId, name])
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  fileUrl     String
+  currentPage Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  // ===== v2 新增字段 =====
+  // 改完以后请记得跑：
+  //   npm run db:push       # 把新列写进 SQLite
+  //   npm run db:generate   # 刷新 @prisma/client 类型
+  // 两步都跑完才能让运行时 schema 与 TS 类型同步。
+  /// 文献分类标签，默认"未分类"
+  category    String   @default("未分类")
+  /// 是否公开分享：true 时任何人（包括未登录）都能通过链接访问
+  isPublic    Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,62 @@
+name: 🚀 Deploy newbook
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Build Docker image
+        run: docker build -t newbook-app:latest .
+
+      - name: 📦 Compress image
+        run: docker save newbook-app:latest | gzip > newbook-app.tar.gz
+
+      - name: 🔑 Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 8.222.168.107 >> ~/.ssh/known_hosts
+
+      - name: 📤 Transfer files to server
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            newbook-app.tar.gz \
+            docker-compose.deploy.yml \
+            root@8.222.168.107:/root/newbook/
+
+      - name: 🔐 Write .env on server
+        run: |
+          ssh -i ~/.ssh/deploy_key root@8.222.168.107 "
+            echo 'DATABASE_URL=postgresql://newbook:newbook_pass@postgres:5432/newbook?schema=public'  > /root/newbook/.env.production
+            echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}'                                          >> /root/newbook/.env.production
+            echo 'DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}'                              >> /root/newbook/.env.production
+            echo 'DEEPSEEK_BASE_URL=https://api.deepseek.com/v1'                                 >> /root/newbook/.env.production
+            echo 'DEEPSEEK_MODEL=deepseek-chat'                                                  >> /root/newbook/.env.production
+          "
+
+      - name: 🔄 Load image and restart on server
+        run: |
+          ssh -i ~/.ssh/deploy_key root@8.222.168.107 \
+            "cd /root/newbook && \
+             echo '📦 加载新镜像...' && \
+             docker load < newbook-app.tar.gz && \
+             rm newbook-app.tar.gz && \
+             echo '🔄 重启服务...' && \
+             docker compose up -d && \
+             echo '✅ 部署完成！' && \
+             echo '' && \
+             echo '容器状态:' && \
+             docker compose ps"
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: rm -f newbook-app.tar.gz

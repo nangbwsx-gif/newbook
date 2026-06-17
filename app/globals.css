@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* shadcn/ui 主题变量 — 后续可替换为完整 shadcn 主题 */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --border: 240 5.9% 90%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+  }
+}
+
+/* ===== PDF 翻书动画 ===== */
+/* 整个容器加 perspective 才有 3D 透视；翻页元素 origin 固定在书脊一侧 */
+.book-stage {
+  perspective: 2000px;
+  perspective-origin: center center;
+}
+
+/* 向后翻页（→ 下一页）：新页从右侧立起，绕左侧书脊翻平 */
+@keyframes page-turn-forward {
+  0% {
+    transform: rotateY(85deg);
+    opacity: 0;
+    filter: brightness(0.35);
+  }
+  40% {
+    opacity: 0.8;
+    filter: brightness(0.6);
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+/* 向前翻页（← 上一页）：新页从左侧立起，绕右侧书脊翻平 */
+@keyframes page-turn-backward {
+  0% {
+    transform: rotateY(-85deg);
+    opacity: 0;
+    filter: brightness(0.35);
+  }
+  40% {
+    opacity: 0.8;
+    filter: brightness(0.6);
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.page-flip-forward {
+  animation: page-turn-forward 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.page-flip-backward {
+  animation: page-turn-backward 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: right center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* ===== react-pdf Outline 默认无样式，这里给个深色目录树外观 ===== */
+.pdf-outline ul {
+  list-style: none;
+  padding-left: 0.75rem;
+  margin: 0;
+}
+.pdf-outline > ul {
+  padding-left: 0;
+}
+.pdf-outline li {
+  margin: 0.125rem 0;
+}
+.pdf-outline a {
+  display: block;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  color: rgb(209 213 219); /* gray-300 */
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  transition: background-color 0.15s, color 0.15s;
+  cursor: pointer;
+}
+.pdf-outline a:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgb(255 255 255);
+}
+
+/* PDF 无目录时 Outline 会渲染为空 ul —— 我们在外层放了一个 .pdf-outline-empty 提示，
+   通过 :has() 在桌面浏览器上仅当 outline 为空时显示提示。
+   不支持 :has() 的浏览器会一直显示提示，不影响功能。 */
+.pdf-outline:has(ul li) + .pdf-outline-empty {
+  display: none;
+}
+
+/* ===== AI 高亮关键词 ===== */
+/* react-pdf 的文本层默认透明（文字与 canvas 重合）。
+   半透明黄色覆盖在 PDF 文字上，既能看见原文又能看见高亮。
+   AI 经常只命中 1-2 字的碎片，所以提高饱和度 + 描边 + 辉光，让单个碎片也足够显眼。 */
+.react-pdf__Page__textContent mark {
+  background-color: rgba(252, 211, 77, 0.65) !important; /* amber-300, 65% 不透明 */
+  color: transparent !important;                          /* 文字保持透明，跟文本层风格一致 */
+  border-radius: 3px;
+  padding: 0 2px;
+  box-shadow:
+    0 0 0 1.5px rgba(245, 158, 11, 0.85),                 /* amber-500 描边 */
+    0 0 8px rgba(252, 211, 77, 0.6);                      /* 辉光，远处一眼能看见 */
+  animation: highlight-pulse 1.2s ease-out 1;             /* 跳转后短暂脉动一次 */
+}
+
+@keyframes highlight-pulse {
+  0% {
+    background-color: rgba(252, 211, 77, 0.95);
+    box-shadow:
+      0 0 0 3px rgba(245, 158, 11, 1),
+      0 0 16px rgba(252, 211, 77, 0.9);
+  }
+  100% {
+    background-color: rgba(252, 211, 77, 0.65);
+    box-shadow:
+      0 0 0 1.5px rgba(245, 158, 11, 0.85),
+      0 0 8px rgba(252, 211, 77, 0.6);
+  }
+}
+
+/* ===== 阅读器日/夜模式 ===== */
+/* 思路：
+   - 容器加 data-reader-theme 属性切换
+   - 夜间模式（默认）保持现状不动
+   - 日间模式覆盖关键背景/边框/文字色
+   - PDF 本身白纸黑字 → 夜间模式下用 invert + hue-rotate 反相，
+     效果类似 Acrobat / Edge 的"深色 PDF 阅读" */
+
+/* 日间模式：浅色阅读器 */
+[data-reader-theme="day"] .reader-shell {
+  background-color: #f4ede0;        /* 米白纸感 */
+}
+[data-reader-theme="day"] .reader-toolbar,
+[data-reader-theme="day"] .reader-sidebar {
+  background-color: #faf6ee;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-reader-theme="day"] .reader-stage {
+  background-color: #e8dfce;        /* 比 toolbar 略深，制造分层 */
+}
+[data-reader-theme="day"] .reader-text-primary {
+  color: #2c2418;                   /* 深棕色文字，比纯黑柔和 */
+}
+[data-reader-theme="day"] .reader-text-muted {
+  color: #6b5e4a;
+}
+[data-reader-theme="day"] .reader-divider {
+  background-color: rgba(0, 0, 0, 0.12);
+}
+[data-reader-theme="day"] .reader-icon-btn {
+  color: #4a3f2e;
+}
+[data-reader-theme="day"] .reader-icon-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: #1f1810;
+}
+[data-reader-theme="day"] .reader-page-input {
+  background-color: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #2c2418;
+}
+[data-reader-theme="day"] .reader-page-input:focus {
+  background-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+/* 日间模式下侧边栏目录项配色 */
+[data-reader-theme="day"] .pdf-outline a {
+  color: #4a3f2e;
+}
+[data-reader-theme="day"] .pdf-outline a:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #1f1810;
+}
+
+/* 夜间模式：只改阅读器外壳（toolbar / sidebar / stage 背景），
+   PDF 页面本体保持原样 —— 这样彩色插画/扫描件不会被反相弄成怪色，
+   也不需要再考虑反相后高亮 mark 的颜色补偿。 */
+
+/* 平滑切换 */
+.reader-shell,
+.reader-toolbar,
+.reader-sidebar,
+.reader-stage {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+/* "清除高亮"按钮 —— 两种主题各自有清晰对比的配色 */
+[data-reader-theme="night"] .reader-clear-highlight {
+  background-color: rgba(253, 224, 71, 0.18);
+  color: #fde68a; /* amber-200 */
+}
+[data-reader-theme="night"] .reader-clear-highlight:hover {
+  background-color: rgba(253, 224, 71, 0.3);
+}
+/* 日间：用饱满的琥珀色块，在浅米白背景上对比鲜明 */
+[data-reader-theme="day"] .reader-clear-highlight {
+  background-color: #f59e0b; /* amber-500 */
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+[data-reader-theme="day"] .reader-clear-highlight:hover {
+  background-color: #d97706; /* amber-600 */
+}
