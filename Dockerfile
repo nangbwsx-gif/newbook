@@ -48,6 +48,11 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# 安装运行时需要的 CLI 工具（prisma db push + tsx seed）
+COPY --from=builder /app/package.json ./package.json
+RUN npm install prisma tsx --omit=dev --ignore-scripts 2>&1 && \
+    rm package.json
+
 # 复制 entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
