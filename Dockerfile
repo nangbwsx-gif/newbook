@@ -56,6 +56,10 @@ RUN chmod +x /entrypoint.sh
 RUN mkdir -p /app/public/uploads && \
     chown -R nextjs:nodejs /app
 
+# 给 nextjs 用户一个可写的家目录（npx/npm 需要）
+RUN mkdir -p /home/nextjs && chown nextjs:nodejs /home/nextjs
+ENV HOME=/home/nextjs
+
 USER nextjs
 
 EXPOSE 3000
