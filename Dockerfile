@@ -48,6 +48,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# 复制 lib（seed.ts 依赖的模块）
+COPY --from=builder /app/lib ./lib
+
 # 安装运行时需要的 CLI 工具（prisma db push + tsx seed）
 COPY --from=builder /app/package.json ./package.json
 RUN npm install prisma tsx --omit=dev --ignore-scripts 2>&1 && \
