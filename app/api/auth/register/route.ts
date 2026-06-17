@@ -78,18 +78,15 @@ export async function POST(request: Request) {
     const cookieStore = await cookies();
     cookieStore.set(TOKEN_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       maxAge: TOKEN_MAX_AGE,
       path: "/",
     });
 
-    return NextResponse.json(
-      {
-        user: { userId: user.id, username: user.username },
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      user: { userId: user.id, username: user.username },
+    });
   } catch (error) {
     console.error("Register error:", error);
     return NextResponse.json(
