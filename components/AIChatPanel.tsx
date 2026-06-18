@@ -60,8 +60,8 @@ export function AIChatPanel({ open, onClose, pdfDoc, bookTitle }: AIChatPanelPro
     setExtractInfo({
       extracted: result.extractedPages,
       total: result.totalPages,
-      rangeStart: Math.max(1, centerPage - 2),
-      rangeEnd: Math.min(pdf.numPages, centerPage + 2),
+      rangeStart: Math.max(1, centerPage - 12),
+      rangeEnd: Math.min(pdf.numPages, centerPage + 12),
     });
   }, []);
 
