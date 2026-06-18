@@ -236,7 +236,18 @@ export function PDFReader() {
         patchCurrentBook({ isPublic: true });
       }
       const url = `${window.location.origin}/book/${currentBook.id}`;
-      await navigator.clipboard.writeText(url);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const input = document.createElement("input");
+        input.value = url;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+      }
       showToast(
         wasAlreadyPublic
           ? "🔗 链接已复制到剪贴板"
@@ -245,13 +256,7 @@ export function PDFReader() {
     } catch (err) {
       console.error("分享失败:", err);
       const url = `${window.location.origin}/book/${currentBook.id}`;
-      showToast(
-        wasAlreadyPublic
-          ? `链接：${url}（请手动复制）`
-          : `已开启公开，请手动复制：${url}`,
-        "info",
-        6000
-      );
+      showToast(`手动复制链接：${url}`, "info", 6000);
     }
   }
 

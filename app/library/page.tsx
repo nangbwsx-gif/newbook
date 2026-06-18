@@ -183,7 +183,20 @@ export default function HomePage() {
         );
       }
       const url = `${window.location.origin}/book/${book.id}`;
-      await navigator.clipboard.writeText(url);
+      // clipboard.writeText 在 HTTP 下会被浏览器阻止，尝试传统方式兜底
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // 传统 fallback：创建一个隐藏 input 来复制
+        const input = document.createElement("input");
+        input.value = url;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+      }
       showToast(
         wasAlreadyPublic
           ? "🔗 链接已复制到剪贴板"
@@ -191,15 +204,8 @@ export default function HomePage() {
       );
     } catch (err) {
       console.error("分享失败:", err);
-      // clipboard 在非 https 环境下会失败，给个兜底
       const url = `${window.location.origin}/book/${book.id}`;
-      showToast(
-        wasAlreadyPublic
-          ? `链接：${url}（请手动复制）`
-          : `已开启公开，请手动复制：${url}`,
-        "info",
-        6000
-      );
+      showToast(`手动复制链接：${url}`, "info", 6000);
     }
   }
 
