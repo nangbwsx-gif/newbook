@@ -31,6 +31,7 @@ jobs:
           scp -i ~/.ssh/deploy_key \
             newbook-app.tar.gz \
             docker-compose.deploy.yml \
+            Caddyfile \
             root@8.222.168.107:/root/newbook/
 
       - name: 🔐 Write .env on server

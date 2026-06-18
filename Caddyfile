@@ -1,0 +1,7 @@
+linshupeng.asia {
+    reverse_proxy app:3000
+}
+
+www.linshupeng.asia {
+    redir https://linshupeng.asia{uri} permanent
+}

@@ -25,14 +25,27 @@ services:
         condition: service_healthy
     volumes:
       - uploads:/app/public/uploads
+    expose:
+      - "3000"
+    networks:
+      - newbook-net
+
+  caddy:
+    image: caddy:alpine
+    restart: always
     ports:
-      - "3000:3000"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
     networks:
       - newbook-net
 
 volumes:
   postgres-data:
   uploads:
+  caddy-data:
 
 networks:
   newbook-net:
