@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { stat, readFile } from "fs/promises";
+import { stat } from "fs/promises";
+import { createReadStream } from "fs";
 import path from "path";
 
 interface RouteParams {
   params: { id: string };
 }
 
+const FILE_EXT = ".pdf";
+
 /**
- * GET /api/books/[id]/file —— 流式返回 PDF 字节。
+ * GET /api/books/[id]/file —— 流式返回 PDF 字节，支持 Range 请求。
  *
  * 鉴权策略（v2）：
  *   - 先按 id 查书；不存在 → 404
@@ -18,7 +21,7 @@ interface RouteParams {
  *
  * 防御性：解析后的绝对路径必须在 public/uploads 之内（防 ../ 越权）
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   try {
     const { id } = params;
     const book = await prisma.book.findUnique({ where: { id } });
@@ -39,7 +42,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const resolved = path.resolve(
       process.cwd(),
       "public",
-      // 去掉前导斜杠后再 join
       book.fileUrl.replace(/^[\\/]+/, "")
     );
     if (!resolved.startsWith(uploadDir + path.sep) && resolved !== uploadDir) {
@@ -47,23 +49,69 @@ export async function GET(_request: Request, { params }: RouteParams) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    const data = await stat(resolved).catch(() => null);
-    if (!data || !data.isFile()) {
+    const fileStat = await stat(resolved).catch(() => null);
+    if (!fileStat || !fileStat.isFile()) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    const buf = await readFile(resolved);
+    const fileSize = fileStat.size;
+    const rangeHeader = request.headers.get("range");
 
-    return new NextResponse(buf, {
+    // 支持 Range 请求（pdf.js 发起的范围请求，实现按需加载）
+    if (rangeHeader && rangeHeader.startsWith("bytes=")) {
+      const parts = rangeHeader.replace("bytes=", "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (!isNaN(start) && !isNaN(end) && start >= 0 && end < fileSize && start <= end) {
+        const chunkSize = end - start + 1;
+        const stream = createReadStream(resolved, { start, end });
+
+        const readable = new ReadableStream({
+          start(controller) {
+            stream.on("data", (chunk) => controller.enqueue(chunk));
+            stream.on("end", () => controller.close());
+            stream.on("error", (err) => controller.error(err));
+          },
+        });
+
+        return new NextResponse(readable, {
+          status: 206,
+          statusText: "Partial Content",
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Length": String(chunkSize),
+            "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+            "Accept-Ranges": "bytes",
+            "Cache-Control": book.isPublic
+              ? "public, max-age=300"
+              : "private, no-store",
+            "Content-Disposition": `inline; filename="book-${id}${FILE_EXT}"`,
+          },
+        });
+      }
+    }
+
+    // 无 Range 头时返回整个文件（流式）
+    const fullStream = createReadStream(resolved);
+    const readableFull = new ReadableStream({
+      start(controller) {
+        fullStream.on("data", (chunk) => controller.enqueue(chunk));
+        fullStream.on("end", () => controller.close());
+        fullStream.on("error", (err) => controller.error(err));
+      },
+    });
+
+    return new NextResponse(readableFull, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Length": String(buf.length),
-        // 公开书可以让浏览器/CDN 缓存，私密书必须 private
+        "Content-Length": String(fileSize),
+        "Accept-Ranges": "bytes",
         "Cache-Control": book.isPublic
           ? "public, max-age=300"
           : "private, no-store",
-        "Content-Disposition": `inline; filename="book-${id}.pdf"`,
+        "Content-Disposition": `inline; filename="book-${id}${FILE_EXT}"`,
       },
     });
   } catch (error) {
