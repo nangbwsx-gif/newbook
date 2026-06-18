@@ -50,7 +50,7 @@ jobs:
             "cd /root/newbook && \
              echo '📦 加载新镜像...' && \
              docker load < newbook-app.tar.gz && \
-             rm newbook-app.tar.gz && \
+             rm -f newbook-app.tar.gz && \
              echo '🔄 重启服务...' && \
              docker compose up -d && \
              echo '✅ 部署完成！' && \
