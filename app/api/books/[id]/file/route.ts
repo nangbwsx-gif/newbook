@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { stat } from "fs/promises";
 import { createReadStream } from "fs";
-import path from "path";
+import { safeResolveUploadPath } from "@/lib/pathTraversal";
 
 interface RouteParams {
   params: { id: string };
@@ -38,13 +38,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // 防御性解析：fileUrl 形如 "/uploads/xxx.pdf"
-    const uploadDir = path.resolve(process.cwd(), "public", "uploads");
-    const resolved = path.resolve(
-      process.cwd(),
-      "public",
+    const resolved = safeResolveUploadPath(
       book.fileUrl.replace(/^[\\/]+/, "")
     );
-    if (!resolved.startsWith(uploadDir + path.sep) && resolved !== uploadDir) {
+    if (!resolved) {
       console.error("Suspicious fileUrl, refused:", book.fileUrl);
       return new NextResponse("Not Found", { status: 404 });
     }

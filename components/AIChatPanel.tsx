@@ -45,7 +45,7 @@ export function AIChatPanel({ open, onClose, pdfDoc, bookTitle }: AIChatPanelPro
   // 给页码做上界：AI 偶尔会幻觉出超出 PDF 页数的页码
   const numPages = pdfDoc?.numPages ?? 0;
 
-  // ===== 按当前页提取附近文本（仅 5 页，大幅降低 token 消耗） =====
+  // ===== 按当前页提取附近文本（当前页 ± 12 页 = 共 25 页） =====
   const [pdfContext, setPdfContext] = useState("");
   const [extractInfo, setExtractInfo] = useState<{
     extracted: number;
@@ -55,7 +55,7 @@ export function AIChatPanel({ open, onClose, pdfDoc, bookTitle }: AIChatPanelPro
   } | null>(null);
 
   const doExtract = useCallback(async (pdf: PdfDoc, centerPage: number) => {
-    const result = await extractPageRange(pdf, centerPage, 2);
+    const result = await extractPageRange(pdf, centerPage, 12);
     setPdfContext(result.combined);
     setExtractInfo({
       extracted: result.extractedPages,
@@ -195,7 +195,7 @@ export function AIChatPanel({ open, onClose, pdfDoc, bookTitle }: AIChatPanelPro
       setSummarizing(false);
       // 把上下文恢复为当前视口
       if (pdfDoc) {
-        extractPageRange(pdfDoc, currentPage, 2).then((r) => {
+        extractPageRange(pdfDoc, currentPage, 12).then((r) => {
           pdfContextRef.current = r.combined;
         });
       }

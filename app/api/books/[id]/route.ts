@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { unlink } from "fs/promises";
-import path from "path";
 import { normalizeCategory } from "@/lib/categories";
+import { safeResolveUploadPath } from "@/lib/pathTraversal";
 
 interface RouteParams {
   params: { id: string };
@@ -189,17 +189,10 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     // 删除磁盘文件
     try {
-      const uploadDir = path.resolve(process.cwd(), "public", "uploads");
-      const resolved = path.resolve(
-        process.cwd(),
-        "public",
+      const resolved = safeResolveUploadPath(
         book.fileUrl.replace(/^[\\/]+/, "")
       );
-      // 防御性校验：路径必须在 public/uploads 之内
-      if (
-        resolved.startsWith(uploadDir + path.sep) ||
-        resolved === uploadDir
-      ) {
+      if (resolved) {
         await unlink(resolved);
       } else {
         console.warn("Refused to unlink outside uploads dir:", book.fileUrl);

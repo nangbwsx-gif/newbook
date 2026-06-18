@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
+import { PageBackground } from "@/components/PageBackground";
+import {
+  UserIcon,
+  LockIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ArrowRightIcon,
+} from "@/components/Icons";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -64,26 +72,7 @@ export default function RegisterPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1424] px-4 py-10 text-slate-100">
       {/* ========== 背景：与首页/登录页同款氛围 ========== */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          backgroundImage: `
-            radial-gradient(ellipse at top left, rgba(56,82,140,0.35), transparent 55%),
-            radial-gradient(ellipse at bottom right, rgba(99,72,180,0.25), transparent 55%),
-            radial-gradient(circle at center, rgba(255,255,255,0.02), transparent 70%)
-          `,
-        }}
-      />
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)
-          `,
-          backgroundSize: "32px 32px",
-        }}
-      />
+      <PageBackground />
 
       {/* ========== 卡片 ========== */}
       <div className="relative z-10 w-full max-w-md">
@@ -119,19 +108,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
+                  <UserIcon />
                 </span>
                 <input
                   id="username"
@@ -156,19 +133,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
+                  <LockIcon />
                 </span>
                 <input
                   id="password"
@@ -187,33 +152,9 @@ export default function RegisterPage() {
                   className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
                 >
                   {showPassword ? (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
+                    <EyeOffIcon />
                   ) : (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
+                    <EyeIcon />
                   )}
                 </button>
               </div>
@@ -229,19 +170,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
+                  <LockIcon />
                 </span>
                 <input
                   id="confirmPassword"
@@ -290,19 +219,7 @@ export default function RegisterPage() {
               ) : (
                 <>
                   创建账号
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
+                  <ArrowRightIcon />
                 </>
               )}
             </button>

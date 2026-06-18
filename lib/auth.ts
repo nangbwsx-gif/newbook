@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
 
 // 启动时硬校验：缺失 JWT_SECRET 直接抛错，避免用空密钥签出可被任意伪造的 token
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
@@ -36,8 +37,6 @@ export async function verifyToken(token: string): Promise<JwtPayload | null> {
     return null;
   }
 }
-
-import { cookies } from "next/headers";
 
 /** 从当前请求的 Cookie 中获取登录用户，未登录返回 null */
 export async function getCurrentUser(): Promise<JwtPayload | null> {

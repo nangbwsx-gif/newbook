@@ -14,8 +14,10 @@ import {
   type Category,
 } from "@/components/CategoryManagerDialog";
 import { MoveBookDialog } from "@/components/MoveBookDialog";
+import { PageBackground } from "@/components/PageBackground";
 import { ALL_TAB, UNCATEGORIZED, type CategoryTab } from "@/lib/categories";
 import { showToast } from "@/lib/showToast";
+import { useShare } from "@/lib/useShare";
 
 // PDF 封面用客户端渲染，避免 SSR 加载 pdfjs 报错
 const BookCover = dynamic(
@@ -155,86 +157,27 @@ export default function HomePage() {
     }
   }
 
-  /**
-   * 一键开启公开分享：
-   *   1. PATCH isPublic=true（如果已经是公开就跳过 PATCH，幂等）
-   *   2. 把阅读器完整 URL 复制到剪贴板
-   *   3. Toast 提示 —— 区分"刚刚开启"和"早已开启"两种情况
-   */
-  async function handleShare(book: Book) {
+  // 分享 / 取消分享（统一抽取到 useShare hook）
+  const { handleShare: shareBook, handleUnshare: unshareBook } = useShare({
+    onBecamePublic: (id) =>
+      setBooks((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, isPublic: true } : b))
+      ),
+    onBecamePrivate: (id) =>
+      setBooks((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, isPublic: false } : b))
+      ),
+  });
+
+  /** 菜单关闭 + 分享 */
+  function handleShare(book: Book) {
     setMenuOpenId(null);
-    const wasAlreadyPublic = book.isPublic;
-    try {
-      // 仅当当前是私密状态才发请求；幂等避免无谓的写库
-      if (!wasAlreadyPublic) {
-        const res = await fetch(`/api/books/${book.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isPublic: true }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          showToast(data.error || "开启公开访问失败", "error");
-          return;
-        }
-        // 本地态直接同步，避免再多一次 GET
-        setBooks((prev) =>
-          prev.map((b) => (b.id === book.id ? { ...b, isPublic: true } : b))
-        );
-      }
-      const url = `${window.location.origin}/book/${book.id}`;
-      // clipboard.writeText 在 HTTP 下会被浏览器阻止，尝试传统方式兜底
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch {
-        // 传统 fallback：创建一个隐藏 input 来复制
-        const input = document.createElement("input");
-        input.value = url;
-        input.style.position = "fixed";
-        input.style.opacity = "0";
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand("copy");
-        document.body.removeChild(input);
-      }
-      showToast(
-        wasAlreadyPublic
-          ? "🔗 链接已复制到剪贴板"
-          : "✅ 已开启公开访问，链接已复制到剪贴板！"
-      );
-    } catch (err) {
-      console.error("分享失败:", err);
-      const url = `${window.location.origin}/book/${book.id}`;
-      showToast(`手动复制链接：${url}`, "info", 6000);
-    }
+    shareBook(book);
   }
 
-  /**
-   * 取消公开分享：把 isPublic 设回 false。
-   * 取消后老链接立刻失效（GET 详情会要求登录，访客拿不到 PDF）。
-   */
-  async function handleUnshare(book: Book) {
+  function handleUnshare(book: Book) {
     setMenuOpenId(null);
-    if (!book.isPublic) return;
-    try {
-      const res = await fetch(`/api/books/${book.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublic: false }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || "取消公开失败", "error");
-        return;
-      }
-      setBooks((prev) =>
-        prev.map((b) => (b.id === book.id ? { ...b, isPublic: false } : b))
-      );
-      showToast("🔒 已取消公开，原分享链接失效");
-    } catch (err) {
-      console.error("取消公开失败:", err);
-      showToast("网络错误", "error");
-    }
+    unshareBook(book);
   }
 
   async function handleLogout() {
@@ -259,28 +202,8 @@ export default function HomePage() {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-[#0b1424]">
-      {/* ========== 深蓝氛围背景（CSS 渐变光晕 + 细密噪点） ========== */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          backgroundImage: `
-            radial-gradient(ellipse at top left, rgba(56,82,140,0.35), transparent 55%),
-            radial-gradient(ellipse at bottom right, rgba(99,72,180,0.25), transparent 55%),
-            radial-gradient(circle at center, rgba(255,255,255,0.02), transparent 70%)
-          `,
-        }}
-      />
-      {/* 极细的网格纹理增加质感 */}
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)
-          `,
-          backgroundSize: "32px 32px",
-        }}
-      />
+      {/* ========== 深蓝氛围背景 ========== */}
+      <PageBackground />
 
       {/* ========== 顶部导航栏 ========== */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-[#070e1c]/90 shadow-lg shadow-black/40 backdrop-blur-md">

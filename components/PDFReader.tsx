@@ -16,6 +16,7 @@ import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { useReaderTheme } from "@/lib/useReaderTheme";
 import { useIsMobile } from "@/lib/useIsMobile";
 import { showToast } from "@/lib/showToast";
+import { useShare } from "@/lib/useShare";
 import { AIChatPanel, type PdfDoc } from "@/components/AIChatPanel";
 
 // react-pdf 的 onLoadSuccess 回调类型推断
@@ -217,69 +218,19 @@ export function PDFReader() {
   }
 
   // ====== 分享 ======
-  // 与主页 BookCard 的 handleShare 行为一致：幂等开公开 → 复制 URL → toast
-  async function handleShare() {
+  const { handleShare, handleUnshare } = useShare({
+    onBecamePublic: () => patchCurrentBook({ isPublic: true }),
+    onBecamePrivate: () => patchCurrentBook({ isPublic: false }),
+  });
+
+  function doShare() {
     if (!currentBook) return;
-    const wasAlreadyPublic = !!currentBook.isPublic;
-    try {
-      if (!wasAlreadyPublic) {
-        const res = await fetch(`/api/books/${currentBook.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isPublic: true }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          showToast(data.error || "开启公开访问失败", "error");
-          return;
-        }
-        patchCurrentBook({ isPublic: true });
-      }
-      const url = `${window.location.origin}/book/${currentBook.id}`;
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch {
-        const input = document.createElement("input");
-        input.value = url;
-        input.style.position = "fixed";
-        input.style.opacity = "0";
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand("copy");
-        document.body.removeChild(input);
-      }
-      showToast(
-        wasAlreadyPublic
-          ? "🔗 链接已复制到剪贴板"
-          : "✅ 已开启公开访问，链接已复制到剪贴板！"
-      );
-    } catch (err) {
-      console.error("分享失败:", err);
-      const url = `${window.location.origin}/book/${currentBook.id}`;
-      showToast(`手动复制链接：${url}`, "info", 6000);
-    }
+    handleShare(currentBook);
   }
 
-  /** 取消公开 —— 取消后老链接立刻失效 */
-  async function handleUnshare() {
-    if (!currentBook?.isPublic) return;
-    try {
-      const res = await fetch(`/api/books/${currentBook.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublic: false }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || "取消公开失败", "error");
-        return;
-      }
-      patchCurrentBook({ isPublic: false });
-      showToast("🔒 已取消公开，原分享链接失效");
-    } catch (err) {
-      console.error("取消公开失败:", err);
-      showToast("网络错误", "error");
-    }
+  function doUnshare() {
+    if (!currentBook) return;
+    handleUnshare(currentBook);
   }
 
   function goToPrevPage() {
@@ -564,7 +515,7 @@ export function PDFReader() {
         {/* 分享按钮：开启公开访问并复制链接 —— 访客模式不可见 */}
         {!isPublicView && (
           <ToolbarButton
-            onClick={handleShare}
+            onClick={doShare}
             title={currentBook?.isPublic ? "复制分享链接（已公开）" : "生成分享链接"}
           >
             {/* share/link 图标；公开状态下加一抹绿色提示已分享 */}
@@ -589,7 +540,7 @@ export function PDFReader() {
         {/* 已公开标签：所有者本人才可见，点 ✕ 取消公开 */}
         {!isPublicView && currentBook?.isPublic && (
           <button
-            onClick={handleUnshare}
+            onClick={doUnshare}
             title="取消公开"
             className="ml-1 flex h-9 shrink-0 items-center gap-1 rounded-md bg-emerald-500/15 px-2 text-xs text-emerald-300 hover:bg-emerald-500/25 hover:text-emerald-200"
           >

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import { PageBackground } from "@/components/PageBackground";
 
 /**
  * 产品首页（公开访问）
@@ -32,26 +33,7 @@ export default function HomePage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0b1424] text-slate-100">
       {/* ========== 背景装饰：与书橱页同款氛围 ========== */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          backgroundImage: `
-            radial-gradient(ellipse at top left, rgba(56,82,140,0.35), transparent 55%),
-            radial-gradient(ellipse at bottom right, rgba(99,72,180,0.25), transparent 55%),
-            radial-gradient(circle at center, rgba(255,255,255,0.02), transparent 70%)
-          `,
-        }}
-      />
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)
-          `,
-          backgroundSize: "32px 32px",
-        }}
-      />
+      <PageBackground />
 
       {/* ========== 顶部导航 ========== */}
       <header className="relative z-10 border-b border-white/5">
